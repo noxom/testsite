@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 class googleApi {
 
@@ -47,7 +47,75 @@ class SiteController extends CController
         $this->render('autocomplete');
     }
 
+    public function actionAutocomplete2() {
+        $this->render('autocomplete2');
+    }
+
+    public function actionCachetest() {
+        $google_key = "AIzaSyDyhxNMydosdPbrh2tnPPLxI-FnVnchpps";
+        $radius = 10000;//search priority , meters
+
+        $time_start = microtime(true);
+
+        $memcache = new Memcache;
+        $memcache->connect('127.0.0.1', 11211);
+
+        if(isset($_POST['city'])) $city = $_POST['city']; else $this->redirect(array('site/autocomplete'));
+        $search_word = $_POST['keyword'];
+
+        if($memcache->get($city)) {
+            $loc = $memcache->get($city);
+        }
+        else {
+            $city_place_id = googleApi::get_place_id($city, $google_key);
+            $tmp = googleApi::get_location($city_place_id, $google_key);
+            $loc = array($tmp->location->lat, $tmp->location->lng,//[0],[1]
+                $tmp->viewport->southwest->lat, $tmp->viewport->northeast->lat,//[2],[3]
+                $tmp->viewport->southwest->lng, $tmp->viewport->northeast->lng);//[4],[5]
+            $memcache->set($city, $loc, false, 600);//10*60sec
+        }
+
+        $nears = googleApi::get_near_places($search_word, $loc[0], $loc[1], $radius, $google_key);
+        $count = 0;
+
+        foreach($nears as $item) {
+            if($memcache->get($item->place_id)) {
+                $item_loc = $memcache->get($item->place_id);
+            }
+            else {
+                $item_location = googleApi::get_location($item->place_id, $google_key);
+                $item_loc = array($item_location->location->lat, $item_location->location->lng);
+                $memcache->set($item->place_id, $item_loc, false, 600);
+            }
+
+            if($loc[2] < $item_loc[0] && $item_loc[0] < $loc[3]
+                && $loc[4] < $item_loc[1] && $item_loc[1] < $loc[5]) {
+                $address = $item->terms[0]->value . ", " . $item->terms[1]->value;
+                $longitude = $item_loc[0];
+                $latitude = $item_loc[1];
+                $arr[$count] = compact("address", "longitude", "latitude");
+                $count++;
+            }
+
+        }
+
+        if($count > 0) {
+        $json_result = json_encode($arr, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        header('Content-Type: application/json');
+        echo $json_result;
+        }
+         else {
+            echo "Результаты не найдены";
+         }
+
+        $time_end = microtime(true);
+        $time = $time_end - $time_start;
+        echo "<p>Process Time: {$time}</p>";
+
+    }
+
     public function actionTest() {
+        $time_start = microtime(true);
         if(isset($_POST['city'])) $city = $_POST['city']; else $this->redirect(array('site/autocomplete'));
         $search_word = $_POST['keyword'];
         $radius = 10000;//search priority , meters
@@ -86,6 +154,10 @@ class SiteController extends CController
                             $count++;
                         }
                     }
+
+                    $time_end = microtime(true);
+                    $time = $time_end - $time_start;
+                    echo "Process Time: {$time}";
 
                     if($count > 0) {
                         $json_result = json_encode($arr, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);

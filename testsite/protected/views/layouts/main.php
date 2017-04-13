@@ -18,6 +18,7 @@
 	'items'=>array(
 		array('label'=>'Home', 'url'=>array('site/index')),
 		array('label'=>'Autocomplete', 'url'=>array('site/autocomplete')),
+		array('label'=>'Autocomplete2', 'url'=>array('site/autocomplete2')),
 	),
 )); ?>
 </div><!-- mainmenu -->

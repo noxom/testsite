@@ -21,6 +21,13 @@ return array(
 			// enable cookie-based authentication
 			'allowAutoLogin'=>true,
 		),
+		'cache'=>array(
+				'class'=>'system.caching.CMemCache',
+				'servers'=>array(
+						array('host'=>'server1', 'port'=>11211, 'weight'=>60),
+						array('host'=>'server2', 'port'=>11211, 'weight'=>40),
+				),
+		),
 		// uncomment the following to set up database
 		/*
 		'db'=>array(
