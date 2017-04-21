@@ -110,7 +110,7 @@ class SiteController extends CController
 
         $time_end = microtime(true);
         $time = $time_end - $time_start;
-        echo "<p>Process Time: {$time}</p>";
+        echo "Process Time: {$time}";
 
     }
 
